@@ -1,0 +1,7 @@
+
+   1. In Solution Explorer, right click on Main solution > Rename
+   2. In Solution Explorer, right click on project (under solution) > Rename
+   3. In Solution Explorer, double click, or right click on Properties >goto Application Tab, rename Assembly name and Default namespace to match.
+   4. If you wish to also rename the namespace, Open one of your class files. Right click the namespace > Rename... this should search and replace all references to your namespace throughout the project.
+   5. Close the project > rename the project folder.
+   6. Edit .sln file in notepad, change the path to the cjproj. ie fu\bar.csproj --> bar\bar.csproj

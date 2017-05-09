@@ -1,0 +1,20 @@
+C:\Users\Administrator\Desktop\SMPPApplications\New folder (2)\GPMTPostingApplication2.0_SpecialCharecter\GPMTPostingApplication2.0\bin\Debug\GPMTPostingApplication2.0.exe.config
+C:\Users\Administrator\Desktop\SMPPApplications\New folder (2)\GPMTPostingApplication2.0_SpecialCharecter\GPMTPostingApplication2.0\bin\Debug\GPMTPostingApplication2.0.exe
+C:\Users\Administrator\Desktop\SMPPApplications\New folder (2)\GPMTPostingApplication2.0_SpecialCharecter\GPMTPostingApplication2.0\bin\Debug\GPMTPostingApplication2.0.pdb
+C:\Users\Administrator\Desktop\SMPPApplications\New folder (2)\GPMTPostingApplication2.0_SpecialCharecter\GPMTPostingApplication2.0\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\Users\Administrator\Desktop\SMPPApplications\New folder (2)\GPMTPostingApplication2.0_SpecialCharecter\GPMTPostingApplication2.0\obj\x86\Debug\GPMTPostingApplication2.0.exe
+C:\Users\Administrator\Desktop\SMPPApplications\New folder (2)\GPMTPostingApplication2.0_SpecialCharecter\GPMTPostingApplication2.0\obj\x86\Debug\GPMTPostingApplication2.0.pdb
+C:\Users\Administrator\Desktop\SMPPApplications\GPMTPostingApplication2.0\GPMTPostingApplication2.0\bin\Debug\GPMTPostingApplication2.0.exe.config
+C:\Users\Administrator\Desktop\SMPPApplications\GPMTPostingApplication2.0\GPMTPostingApplication2.0\bin\Debug\GPMTPostingApplication2.0.exe
+C:\Users\Administrator\Desktop\SMPPApplications\GPMTPostingApplication2.0\GPMTPostingApplication2.0\bin\Debug\GPMTPostingApplication2.0.pdb
+C:\Users\Administrator\Desktop\SMPPApplications\GPMTPostingApplication2.0\GPMTPostingApplication2.0\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\Users\Administrator\Desktop\SMPPApplications\GPMTPostingApplication2.0\GPMTPostingApplication2.0\obj\x86\Debug\GPMTPostingApplication2.0.exe
+C:\Users\Administrator\Desktop\SMPPApplications\GPMTPostingApplication2.0\GPMTPostingApplication2.0\obj\x86\Debug\GPMTPostingApplication2.0.pdb
+D:\C#\GPMTPostingApplication2.0\GPMTPostingApplication2.0\bin\Debug\GPMTPostingApplication2.0.exe.config
+D:\C#\GPMTPostingApplication2.0\GPMTPostingApplication2.0\bin\Debug\GPMTPostingApplication2.0.exe
+D:\C#\GPMTPostingApplication2.0\GPMTPostingApplication2.0\bin\Debug\GPMTPostingApplication2.0.pdb
+D:\C#\GPMTPostingApplication2.0\GPMTPostingApplication2.0\obj\x86\Debug\GPMTPostingApplication2.0.exe
+D:\C#\GPMTPostingApplication2.0\GPMTPostingApplication2.0\obj\x86\Debug\GPMTPostingApplication2.0.pdb
+D:\C#\BulkSMSPostingApplication2.0\GPMTPostingApplication2.0\bin\Debug\GPMTPostingApplication2.0.exe.config
+D:\C#\BulkSMSPostingApplication2.0\GPMTPostingApplication2.0\obj\x86\Debug\GPMTPostingApplication2.0.exe
+D:\C#\BulkSMSPostingApplication2.0\GPMTPostingApplication2.0\obj\x86\Debug\GPMTPostingApplication2.0.pdb
