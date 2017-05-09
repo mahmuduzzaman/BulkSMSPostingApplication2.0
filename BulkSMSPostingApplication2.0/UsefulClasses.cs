@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Data;
 using System.Data.OleDb;
+using System.Data.SqlClient;
 using System.Configuration;
 using System.Threading;
 using System.Web;
@@ -27,6 +28,20 @@ namespace BulkSMSPostingApplication2
                "where IIf(Now()>=USER_OF_RUN.STARTDATE and Now()<=USER_OF_RUN.ENDDATE , 1, 0)=1 " +
                "and NUM_RUN_DEIL.SDAYS=weekday(now());";
 
+        public static String UserPopulateSQL = "SELECT USERINFO.USERID " +
+                ",USERINFO.Badgenumber " +
+                ",USERINFO.NAME " +
+                ",NUM_RUN_DEIL.SCHCLASSID " +
+                ",USERINFO.PAGER " +
+                               "FROM " +
+               "(USERINFO INNER JOIN USER_OF_RUN " +
+                                        "ON USERINFO.USERID = USER_OF_RUN.USERID) " +
+               "INNER JOIN NUM_RUN_DEIL " +
+                                        "ON USER_OF_RUN.NUM_OF_RUN_ID = NUM_RUN_DEIL.NUM_RUNID " +
+                "WHERE IIf(getDate() >= USER_OF_RUN.STARTDATE " +
+                    "AND getDate() <= USER_OF_RUN.ENDDATE, 1, 0) = 1 " +
+                    "AND NUM_RUN_DEIL.SDAYS = Datepart(weekday,getDate()); ";
+
         public static String UserCount = "SELECT " +
                 "count(*) as CountData " +
                 "FROM " +
@@ -36,6 +51,17 @@ namespace BulkSMSPostingApplication2
                                          "ON USER_OF_RUN.NUM_OF_RUN_ID = NUM_RUN_DEIL.NUM_RUNID " +
                 "where IIf(Now()>=USER_OF_RUN.STARTDATE and Now()<=USER_OF_RUN.ENDDATE , 1, 0)=1 " +
                 "and NUM_RUN_DEIL.SDAYS=weekday(now());";
+
+        public static String UserCountSql = "SELECT " +
+                "count(*) as CountData " +
+                "FROM " +
+                "(USERINFO INNER JOIN USER_OF_RUN " +
+                                        "ON USERINFO.USERID = USER_OF_RUN.USERID) " +
+               "INNER JOIN NUM_RUN_DEIL " +
+                                        "ON USER_OF_RUN.NUM_OF_RUN_ID = NUM_RUN_DEIL.NUM_RUNID " +
+                "WHERE IIf(getDate() >= USER_OF_RUN.STARTDATE " +
+                    "AND getDate() <= USER_OF_RUN.ENDDATE, 1, 0) = 1 " +
+                    "AND NUM_RUN_DEIL.SDAYS = Datepart(weekday,getDate()); ";
 
 
         public static String ShiftPopulate = "SELECT SchClass.schClassid, SchClass.schName, SchClass.StartTime, SchClass.EndTime, " +
@@ -59,6 +85,9 @@ namespace BulkSMSPostingApplication2
         public static String MessageRegularLeave = ConfigurationManager.AppSettings["MessageRegularLeave"].ToString();
         public static String MessageNoPunch = ConfigurationManager.AppSettings["MessageNoPunch"].ToString();
 
+        public static String ConnectionMainSQL = ConfigurationManager.AppSettings["ConnectionMain"].ToString();
+        public static String ConnectionSmsSQL = ConfigurationManager.AppSettings["ConnectionSMS"].ToString();
+
         public static String ServiceID = "SERVICE";
         public static String srcMobile = "MRTComputer";
 
@@ -73,28 +102,38 @@ namespace BulkSMSPostingApplication2
         //public SqlConnection thisConnection = new SqlConnection(ConfigurationManager.AppSettings["ConnectionString"].ToString());
         String ConnectionString = "";
 
-        public OleDbConnection conn;
-        public OleDbCommand QueryCommand;
-        public OleDbDataReader QueryReader;
+        //public OleDbConnection conn;
+        public IDbConnection conn;
+        public IDbCommand QueryCommand;
+        public IDataReader QueryReader;
 
         public int RetryDetailCount = 0;
         public string Operatorkey = null;
         public string NextRetryMin = null;
 
-        Queue<string> QueCommandsExecute;
 
         // This is a DB access constructor
-        public DBAccess(String conString)
+        public DBAccess(String conString, String TypeConnection) //0 for OLEDB 1 for SQLConnection
         {
             this.ConnectionString = conString;
-            this.conn = new OleDbConnection("Provider=Microsoft.Jet.OLEDB.4.0; " +
-                                    "Data Source=" + this.ConnectionString);
+            this.conn = GetConnection(TypeConnection, conString);
 
             DbOpenConnection();
 
             this.QueryCommand = this.conn.CreateCommand();
             this.QueryReader = null;
-            this.QueCommandsExecute = new Queue<String>();           
+        }
+
+        IDbConnection GetConnection(string providerType, string connectString)
+        {
+            switch (providerType)
+            {
+                case "SqlClient": return new System.Data.SqlClient.SqlConnection(connectString);
+                case "OleDb": return new System.Data.OleDb.OleDbConnection("Provider=Microsoft.Jet.OLEDB.4.0; " +
+                                    "Data Source=" + connectString);
+                case "Odbc": return new System.Data.Odbc.OdbcConnection(connectString);
+                default: throw new Exception("Error: Unknown Data Provider - " + providerType);
+            }
         }
 
         public void DbOpenConnection()
@@ -130,8 +169,9 @@ namespace BulkSMSPostingApplication2
             }
         }
 
-        public OleDbDataReader returnReader(String CommandText)
+        public IDataReader returnReader(String CommandText)
         {
+            this.QueryCommand = this.conn.CreateCommand();
             this.QueryCommand.CommandText = CommandText;
             this.QueryReader = this.QueryCommand.ExecuteReader();
             return QueryReader;
@@ -139,20 +179,19 @@ namespace BulkSMSPostingApplication2
 
         public void executeCommand(String CommandText)
         {
+            this.QueryCommand = this.conn.CreateCommand();
             QueryCommand.CommandText = CommandText;
             QueryCommand.ExecuteNonQuery();
-        }
-
-        public void AddInQueue(String CommandText)
-        {
-            QueCommandsExecute.Enqueue(CommandText);
+            QueryCommand.Dispose();
         }
 
         public T returnValue<T> (String CommandText)
         {
+            this.QueryCommand = this.conn.CreateCommand();
             T retValue;
             QueryCommand.CommandText = CommandText;
             retValue = (T) QueryCommand.ExecuteScalar();
+            QueryCommand.Dispose();
             return (T)Convert.ChangeType(retValue, typeof(T));
         }
 

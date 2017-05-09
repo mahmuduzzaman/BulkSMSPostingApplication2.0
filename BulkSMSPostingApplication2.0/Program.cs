@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-
+using System.Data;
 using System.Data.OleDb;
 using System.Threading;
 using System.Configuration;
@@ -16,8 +16,7 @@ using System.Net;
 using System.Data.SqlClient;
 
 namespace BulkSMSPostingApplication2
-{
-           
+{           
     //Class for creating SMS from Check in out
     public class CheckInProcess
     {
@@ -28,8 +27,8 @@ namespace BulkSMSPostingApplication2
 
         DateTime lastTime;
         DateTime curTime;
-        
-        OleDbDataReader QueryReader;
+
+        IDataReader QueryReader;
         public Hashtable htUsers; 
         public Hashtable htShifts;
 
@@ -51,23 +50,22 @@ namespace BulkSMSPostingApplication2
         void PopulateUsers()
         {
             htUsers.Clear();
-            QueryReader = objDBMain.returnReader(QueryInProgram.UserPopulate);//UserID, Badgenumber,Name,SCHCLASSID, PAGER
-            if (QueryReader.HasRows)
+            QueryReader = objDBMain.returnReader(QueryInProgram.UserPopulateSQL);//UserID, Badgenumber,Name,SCHCLASSID, PAGER
+
+            while (QueryReader.Read())
             {
-                while (QueryReader.Read())
-                {
-                    String UserID = QueryReader["USERID"].ToString();
-                    String BadgeNumber = QueryReader["Badgenumber"].ToString();
-                    String Name = QueryReader["Name"].ToString();
-                    int ShiftNumber =  Int32.Parse(QueryReader["SCHCLASSID"].ToString());                    
-                    Shift currentShift =(Shift) htShifts[ShiftNumber];
+                String UserID = QueryReader["USERID"].ToString();
+                String BadgeNumber = QueryReader["Badgenumber"].ToString();
+                String Name = QueryReader["Name"].ToString();
+                int ShiftNumber =  Int32.Parse(QueryReader["SCHCLASSID"].ToString());                    
+                Shift currentShift =(Shift) htShifts[ShiftNumber];
                     
-                    String Mobile = QueryReader["PAGER"].ToString();
-                    Employee newEmployee = new Employee(UserID, BadgeNumber, Name, currentShift,Mobile);
-                    htUsers.Add(UserID,newEmployee );
-                    currentShift.ListEmployees.Add(newEmployee);
-                }
+                String Mobile = QueryReader["PAGER"].ToString();
+                Employee newEmployee = new Employee(UserID, BadgeNumber, Name, currentShift,Mobile);
+                htUsers.Add(UserID,newEmployee );
+                currentShift.ListEmployees.Add(newEmployee);
             }
+
             QueryReader.Close();
             TotalUsers = htUsers.Count;
         }
@@ -77,24 +75,23 @@ namespace BulkSMSPostingApplication2
             htShifts.Clear();
             QueryReader = objDBMain.returnReader(QueryInProgram.ShiftPopulate);//schClassid, schName,StartTime,EndTime,LateMinutes
             //EarlyMinutes, CheckInTime1, CheckInTime2, CheckOutTime1, CheckOutTime2
-            if (QueryReader.HasRows)
-            {
-                while (QueryReader.Read())
-                {
-                    int schClassID = Int32.Parse(QueryReader["schClassid"].ToString());
-                    String schName = QueryReader["schName"].ToString();
-                    DateTime StartTime = DateTime.Parse(QueryReader["StartTime"].ToString());
-                    DateTime EndTime = DateTime.Parse(QueryReader["EndTime"].ToString());
-                    int LateMinutes = Int32.Parse(QueryReader["LateMinutes"].ToString());
-                    int EarlyMinutes = Int32.Parse(QueryReader["EarlyMinutes"].ToString());
-                    DateTime CheckInTime1 = DateTime.Parse(QueryReader["CheckInTime1"].ToString());
-                    DateTime CheckInTime2 = DateTime.Parse(QueryReader["CheckInTime2"].ToString());
-                    DateTime CheckOutTime1 = DateTime.Parse(QueryReader["CheckOutTime1"].ToString());
-                    DateTime CheckOutTime2 = DateTime.Parse(QueryReader["CheckOutTime2"].ToString());
 
-                    htShifts.Add(schClassID, new Shift(schClassID, schName, StartTime, EndTime, LateMinutes, EarlyMinutes, CheckInTime1, CheckInTime2, CheckOutTime1, CheckOutTime2));
-                }
+            while (QueryReader.Read())
+            {
+                int schClassID = Int32.Parse(QueryReader["schClassid"].ToString());
+                String schName = QueryReader["schName"].ToString();
+                DateTime StartTime = DateTime.Parse(QueryReader["StartTime"].ToString());
+                DateTime EndTime = DateTime.Parse(QueryReader["EndTime"].ToString());
+                int LateMinutes = Int32.Parse(QueryReader["LateMinutes"].ToString());
+                int EarlyMinutes = Int32.Parse(QueryReader["EarlyMinutes"].ToString());
+                DateTime CheckInTime1 = DateTime.Parse(QueryReader["CheckInTime1"].ToString());
+                DateTime CheckInTime2 = DateTime.Parse(QueryReader["CheckInTime2"].ToString());
+                DateTime CheckOutTime1 = DateTime.Parse(QueryReader["CheckOutTime1"].ToString());
+                DateTime CheckOutTime2 = DateTime.Parse(QueryReader["CheckOutTime2"].ToString());
+
+                htShifts.Add(schClassID, new Shift(schClassID, schName, StartTime, EndTime, LateMinutes, EarlyMinutes, CheckInTime1, CheckInTime2, CheckOutTime1, CheckOutTime2));
             }
+
             QueryReader.Close();
         }
 
@@ -148,29 +145,32 @@ namespace BulkSMSPostingApplication2
                 }
 
                 //Check User Count
-                int CountUser = objDBMain.returnValue<int>(QueryInProgram.UserCount);
+                int CountUser = objDBMain.returnValue<int>(QueryInProgram.UserCountSql);
                 if (CountUser != TotalUsers)
                 {
                     PopulateShifts();
                     PopulateUsers();
                 }
                     
-                String QueryCheckin = "SELECT USERID,CHECKTIME FROM CHECKINOUT where CHECKTIME > #"
+                String QueryCheckinOLe = "SELECT USERID,CHECKTIME FROM CHECKINOUT where CHECKTIME > #"
                     + lastTime.ToString("yyyy-MM-dd HH:mm:ss") + "# and CHECKTIME <= #"
                     + curTime.ToString("yyyy-MM-dd HH:mm:ss") + "#";
 
-                QueryReader = objDBMain.returnReader(QueryCheckin);
-                if (QueryReader.HasRows)
+                String QueryCheckinSql = "SELECT USERID,CHECKTIME FROM CHECKINOUT where CHECKTIME > '"
+                    + lastTime.ToString("yyyy-MM-dd HH:mm:ss") + "' and CHECKTIME <= '"
+                    + curTime.ToString("yyyy-MM-dd HH:mm:ss") + "'";
+
+                QueryReader = objDBMain.returnReader(QueryCheckinSql);
+
+                while (QueryReader.Read())
                 {
-                    while (QueryReader.Read())
-                    {
-                        //Get the Employee
-                        String UserID = QueryReader["USERID"].ToString();
-                        DateTime checkTime = DateTime.Parse(QueryReader["CHECKTIME"].ToString());
-                        Employee empCurrent = (Employee)htUsers[UserID];
-                        empCurrent.CheckIN(checkTime, objDBSMS);
-                    }
+                    //Get the Employee
+                    String UserID = QueryReader["USERID"].ToString();
+                    DateTime checkTime = DateTime.Parse(QueryReader["CHECKTIME"].ToString());
+                    Employee empCurrent = (Employee)htUsers[UserID];
+                    empCurrent.CheckIN(checkTime, objDBSMS);
                 }
+
 
                 QueryReader.Close();
 
@@ -196,6 +196,8 @@ namespace BulkSMSPostingApplication2
         public string OutboxWhereClause = ConfigurationManager.AppSettings["OutboxWhereClause"].ToString();
         public string OutboxCountClause = ConfigurationManager.AppSettings["OutboxCountClause"].ToString();
 
+        public int HasDataInSMS;
+
         DBAccess objDBAccess;
 
         public SMSProcess(DBAccess objDBAccess)
@@ -215,14 +217,13 @@ namespace BulkSMSPostingApplication2
                     this.count = 0;
                     this.recordCount = 0;
                     String CommandText;
+                    HasDataInSMS = 0;
                     //TopNumber="0";
                     finished.Reset();
                     string TopNumber = ConfigurationManager.AppSettings["TopNumber"].ToString();
-                    OleDbCommand OutboxQueryCommand = objDBAccess.conn.CreateCommand();
-                   
 
-                    OutboxQueryCommand.CommandText = "SELECT count(msgID) FROM SMSOutbox " + OutboxCountClause + "";
-                    recordCount = (int)OutboxQueryCommand.ExecuteScalar();
+                    CommandText = "SELECT count(msgID) FROM SMSOutbox " + OutboxCountClause + "";
+                    recordCount = objDBAccess.returnValue<int>(CommandText);
                     if (recordCount > Int32.Parse(TopNumber))
                     {
                         Console.WriteLine("TopNumber:" + TopNumber);
@@ -237,87 +238,84 @@ namespace BulkSMSPostingApplication2
                         Console.WriteLine("TopNumber:" + TopNumber);
                     }
 
-                    OutboxQueryCommand.Dispose();
-
+                    
                     if (recordCount > 0)
                     {
 
-                        //Thread.Sleep(100);
-                        OutboxQueryCommand = objDBAccess.conn.CreateCommand();
+                        CommandText = "SELECT top " + TopNumber + " msgID,dstMN,srcMN,msg,IN_MSG_ID,ServiceID,retrycount,msgStatus FROM SMSOutbox  " + OutboxWhereClause + "";
+                        IDataReader OutboxQueryReader = objDBAccess.returnReader(CommandText);
 
-                        //SELECT top 5 dstMN,srcMN,msg,msgID,ServiceID,retrycount,msgStatus FROM SMSOutbox where msgStatus='QUE' and Schedule < CURRENT_TIMESTAMP and retrycount > -1 and msg is not null and  msg <>'' order by Priority asc, retrycount desc,Schedule asc
-
-                        OutboxQueryCommand.CommandText = "SELECT top " + TopNumber + " msgID,dstMN,srcMN,msg,IN_MSG_ID,ServiceID,retrycount,msgStatus FROM SMSOutbox  " + OutboxWhereClause + "";
-
-                        OleDbDataReader OutboxQueryReader = OutboxQueryCommand.ExecuteReader();
-
-                        if (OutboxQueryReader.HasRows)
+                        //dstMN, srcMN,msg,msgID,ServiceID,retrycount,msgStatus
+                        while (OutboxQueryReader.Read())
                         {
-                            //dstMN, srcMN,msg,msgID,ServiceID,retrycount,msgStatus
-                            while (OutboxQueryReader.Read())
-                            {
-                                string[] OutBoxFields = new string[8];
-                                OutBoxFields[0] = OutboxQueryReader["dstMN"].ToString();
-                                OutBoxFields[1] = OutboxQueryReader["srcMN"].ToString();
-                                OutBoxFields[2] = OutboxQueryReader["msg"].ToString();
-                                OutBoxFields[3] = OutboxQueryReader["IN_MSG_ID"].ToString();
-                                OutBoxFields[4] = OutboxQueryReader["ServiceID"].ToString();
-                                OutBoxFields[5] = OutboxQueryReader["retrycount"].ToString();
-                                OutBoxFields[6] = OutboxQueryReader["msgStatus"].ToString();
-                                OutBoxFields[7] = OutboxQueryReader["msgID"].ToString();
-                                //OutBoxFields[8] = DateTime.Now.ToString("yyyyMMddhhmmssffffff");
-                                Thread.Sleep(2);
-                                ThreadProcessorClass objThreadProcessorClass = new ThreadProcessorClass(OutBoxFields);
-                                ThreadPool.QueueUserWorkItem(new WaitCallback(OutboxThreadProcessor), objThreadProcessorClass);
-                            }
+                            string[] OutBoxFields = new string[8];
+                            OutBoxFields[0] = OutboxQueryReader["dstMN"].ToString();
+                            OutBoxFields[1] = OutboxQueryReader["srcMN"].ToString();
+                            OutBoxFields[2] = OutboxQueryReader["msg"].ToString();
+                            OutBoxFields[3] = OutboxQueryReader["IN_MSG_ID"].ToString();
+                            OutBoxFields[4] = OutboxQueryReader["ServiceID"].ToString();
+                            OutBoxFields[5] = OutboxQueryReader["retrycount"].ToString();
+                            OutBoxFields[6] = OutboxQueryReader["msgStatus"].ToString();
+                            OutBoxFields[7] = OutboxQueryReader["msgID"].ToString();
 
-                            OutboxQueryReader.Close();
-                            OutboxQueryCommand.Dispose();
-
-                            finished.WaitOne();
-
-                            foreach (string[] NewOutBoxFields in OutboxList)
-                            {
-                                
-
-                                XmlDocument xDoc = new XmlDocument();
-                                //load up the xml from the location 
-                                xDoc.LoadXml(NewOutBoxFields[6]);
-                                //xDoc.Load(NewOutBoxFields[6]);
-                                // Get elements
-                                XmlNodeList NewStatusXML = xDoc.GetElementsByTagName("Status");
-                                XmlNodeList IN_MSG_IDXML = xDoc.GetElementsByTagName("InMsgID");
-                                XmlNodeList StatusCodeXML = xDoc.GetElementsByTagName("StatusCode");
-
-                                string NewStatus = NewStatusXML[0].InnerText;
-                                string IN_MSG_ID = IN_MSG_IDXML[0].InnerText;
-                                string StatusCode = StatusCodeXML[0].InnerText;
-
-                                if (NewStatus.Trim() == "POSTED")
-                                {
-                                    //(srcMn, dstMN,writeTime,Schedule, msg, msgStatus, retrycount,ServiceID,IN_MSG_ID)
-                                    CommandText = "delete from SMSOutbox " +
-                                        " where IN_MSG_ID ='" + IN_MSG_ID + "' ";
-                                    objDBAccess.executeCommand(CommandText); 
-                                }
-                                else
-                                {
-                                    //UpdateQueryCommand.CommandText = "UPDATE SMSOutbox SET msgStatus ='POSTED',sentTime=CURRENT_TIMESTAMP,msgID='" + NewMsgID.Trim() + "',Remarks='" + NewDescription.Trim() + "' WHERE ID ='" + NewOutBoxFields[7] + "' ";
-
-                                    int NextRetryCount = Convert.ToInt16(NewOutBoxFields[5]) - 1;
-                                    CommandText = "UPDATE SMSOutbox set  retrycount = " + NextRetryCount +
-                                            " where IN_MSG_ID ='" + IN_MSG_ID + "' ";
-                                    objDBAccess.executeCommand(CommandText); 
-
-                                }
-
-                                string SendingStatus = "Sender:" + NewOutBoxFields[1] + "| Destination:" + NewOutBoxFields[0] + "|Status:" + NewStatus + "|Message ID:" + IN_MSG_ID.Trim() + " | Message:" + NewOutBoxFields[2] + "\n";
-                                Console.WriteLine(SendingStatus);
-                                auxObj.LogWriter(SendingStatus);
-                            }
-
-                            OutboxList.Clear();
+                            HasDataInSMS++;
+                            //OutBoxFields[8] = DateTime.Now.ToString("yyyyMMddhhmmssffffff");
+                            Thread.Sleep(2);
+                            ThreadProcessorClass objThreadProcessorClass = new ThreadProcessorClass(OutBoxFields);
+                            ThreadPool.QueueUserWorkItem(new WaitCallback(OutboxThreadProcessor), objThreadProcessorClass);
                         }
+
+                        OutboxQueryReader.Close();
+                        //OutboxQueryCommand.Dispose();
+
+                        finished.WaitOne();
+
+                        if (HasDataInSMS > 0)
+                        {
+                                foreach (string[] NewOutBoxFields in OutboxList)
+                                {
+
+
+                                    XmlDocument xDoc = new XmlDocument();
+                                    //load up the xml from the location 
+                                    xDoc.LoadXml(NewOutBoxFields[6]);
+                                    //xDoc.Load(NewOutBoxFields[6]);
+                                    // Get elements
+                                    XmlNodeList NewStatusXML = xDoc.GetElementsByTagName("Status");
+                                    XmlNodeList IN_MSG_IDXML = xDoc.GetElementsByTagName("InMsgID");
+                                    XmlNodeList StatusCodeXML = xDoc.GetElementsByTagName("StatusCode");
+
+                                    string NewStatus = NewStatusXML[0].InnerText;
+                                    string IN_MSG_ID = IN_MSG_IDXML[0].InnerText;
+                                    string StatusCode = StatusCodeXML[0].InnerText;
+
+                                    if (NewStatus.Trim() == "POSTED")
+                                    {
+                                        //(srcMn, dstMN,writeTime,Schedule, msg, msgStatus, retrycount,ServiceID,IN_MSG_ID)
+                                        CommandText = "delete from SMSOutbox " +
+                                            " where IN_MSG_ID ='" + IN_MSG_ID + "' ";
+                                        objDBAccess.executeCommand(CommandText);
+                                    }
+                                    else
+                                    {
+                                        //UpdateQueryCommand.CommandText = "UPDATE SMSOutbox SET msgStatus ='POSTED',sentTime=CURRENT_TIMESTAMP,msgID='" + NewMsgID.Trim() + "',Remarks='" + NewDescription.Trim() + "' WHERE ID ='" + NewOutBoxFields[7] + "' ";
+
+                                        int NextRetryCount = Convert.ToInt16(NewOutBoxFields[5]) - 1;
+                                        CommandText = "UPDATE SMSOutbox set  retrycount = " + NextRetryCount +
+                                                " where IN_MSG_ID ='" + IN_MSG_ID + "' ";
+                                        objDBAccess.executeCommand(CommandText);
+
+                                    }
+
+                                    string SendingStatus = "Sender:" + NewOutBoxFields[1] + "| Destination:" + NewOutBoxFields[0] + "|Status:" + NewStatus + "|Message ID:" + IN_MSG_ID.Trim() + " | Message:" + NewOutBoxFields[2] + "\n";
+                                    Console.WriteLine(SendingStatus);
+                                    auxObj.LogWriter(SendingStatus);
+                                }
+
+                                OutboxList.Clear();
+                            }
+                            // End has Rows
+
                         TopNumber = null;
                     }
                     else
@@ -376,7 +374,6 @@ namespace BulkSMSPostingApplication2
             }
         }
 
-
     }
 
     class Program
@@ -390,16 +387,19 @@ namespace BulkSMSPostingApplication2
 
         public static void Main(string[] args)
         {
-            DBAccess objDBAccess = new DBAccess(QueryInProgram.ConnectionSMSDB);
-            DBAccess objDBCheck = new DBAccess(QueryInProgram.ConnectionMainDB);
+            //DBAccess objDBAccess = new DBAccess(QueryInProgram.ConnectionSMSDB, "OleDb"); //Access Connections
+            //DBAccess objDBCheck = new DBAccess(QueryInProgram.ConnectionMainDB, "OleDb");
+
+            DBAccess objDBSMS = new DBAccess(QueryInProgram.ConnectionSmsSQL, "SqlClient");
+            DBAccess objDBCheck = new DBAccess(QueryInProgram.ConnectionMainSQL, "SqlClient");
             //DBAccess objDBCheck2 = new DBAccess(QueryInProgram.ConnectionSMSDB);
             Program instance = new Program();
 
             try
             {   
                 
-                SMSProcess smsClass = new SMSProcess(objDBAccess);
-                CheckInProcess checkClass = new CheckInProcess(objDBCheck, objDBAccess);
+                SMSProcess smsClass = new SMSProcess(objDBSMS);
+                CheckInProcess checkClass = new CheckInProcess(objDBCheck, objDBSMS);
 
                 Thread smsThread = new Thread(new ThreadStart(smsClass.ThreadRun));
                 Thread checkThread = new Thread(new ThreadStart(checkClass.ThreadRun));

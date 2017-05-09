@@ -103,9 +103,14 @@ namespace BulkSMSPostingApplication2
                 IN_MSG_ID = this.Mobile + curTime.ToString("yyyyMMddHHmmss") + ran.Next(1,99);
 
     
+                //CommandText = "Insert into SMSOutbox(srcMn, dstMN,writeTime,Schedule, msg, msgStatus, retrycount,ServiceID,IN_MSG_ID) " +
+                //        " values( '" + QueryInProgram.srcMobile + "', '" + this.Mobile + "', #" + curTime.ToString("yyyy-MM-dd HH:mm:ss") + "#, #"
+                //        + curTime.ToString("yyyy-MM-dd HH:mm:ss") + "#, '" + msg + "','QUE', 3, '" + QueryInProgram.ServiceID + "','" + IN_MSG_ID + "' )";
+                
                 CommandText = "Insert into SMSOutbox(srcMn, dstMN,writeTime,Schedule, msg, msgStatus, retrycount,ServiceID,IN_MSG_ID) " +
-                        " values( '" + QueryInProgram.srcMobile + "', '" + this.Mobile + "', #" + curTime.ToString("yyyy-MM-dd HH:mm:ss") + "#, #"
-                        + curTime.ToString("yyyy-MM-dd HH:mm:ss") + "#, '" + msg + "','QUE', 3, '" + QueryInProgram.ServiceID + "','" + IN_MSG_ID + "' )";
+                        " values( '" + QueryInProgram.srcMobile + "', '" + this.Mobile + "', '" + curTime.ToString("yyyy-MM-dd HH:mm:ss") + "', '"
+                        + curTime.ToString("yyyy-MM-dd HH:mm:ss") + "', '" + msg + "','QUE', 3, '" + QueryInProgram.ServiceID + "','" + IN_MSG_ID + "' )";
+
 
                 objDB.executeCommand(CommandText);   
             }                    
